@@ -536,7 +536,7 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
                         shard->remaining_write_records_ == 0,
                     "Missing write records");
                 instr_t *instr = cur_instr_decoded->data;
-                shard->remaining_read_records_ = instr_num_read_access(instr);
+                shard->remaining_read_records_ = instr_num_memory_read_access(instr);
                 // kyluk
                 //              if (shard->remaining_read_records_ > 0) {
                 //                  if (display_count < 10) {
@@ -569,7 +569,7 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
                 //                      display_count++;
                 //                  }
                 //              }
-                shard->remaining_write_records_ = instr_num_write_access(instr);
+                shard->remaining_write_records_ = instr_num_memory_write_access(instr);
 
                 //              std::cerr << "new shard->remaining_read_records_: "
                 //                        << shard->remaining_read_records_
