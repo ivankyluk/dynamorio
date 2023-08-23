@@ -131,6 +131,17 @@ invariant_checker_t::parallel_shard_init(int shard_index, void *worker_data)
 bool
 invariant_checker_t::parallel_shard_exit(void *shard_data)
 {
+    per_shard_t *shard = reinterpret_cast<per_shard_t *>(shard_data);
+    report_if_false(shard,
+                    TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                            shard->file_type_) ||
+                        shard->remaining_read_records_ == 0,
+                    "Missing read records");
+    report_if_false(shard,
+                    TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                            shard->file_type_) ||
+                        shard->remaining_write_records_ == 0,
+                    "Missing write records");
     return true;
 }
 
@@ -477,6 +488,7 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
                         "Physical addr bottom 12 bits do not match virtual");
     }
 
+    // kyluk    static int display_count = 0;
     if (type_is_instr(memref.instr.type) ||
         memref.instr.type == TRACE_TYPE_PREFETCH_INSTR ||
         memref.instr.type == TRACE_TYPE_INSTR_NO_FETCH) {
@@ -492,6 +504,103 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
             if (next_pc == nullptr) {
                 cur_instr_decoded.reset(nullptr);
             }
+            if (cur_instr_decoded != nullptr && cur_instr_decoded->data != nullptr) {
+                // Verify the number of read/write records matches the number of
+                // operands of the last instruction.
+                // kyluk
+                //              if (shard->remaining_read_records_ != 0 ||
+                //                  shard->remaining_write_records_ != 0) {
+                //                  std::cerr << "shard->remaining_read_records_: "
+                //                            << shard->remaining_read_records_
+                //                            << ", shard->remaining_write_records_: "
+                //                            << shard->remaining_write_records_ << "\n";
+                //              } else {
+                //                  shard->passed_read_write_checks_++;
+                //               // if ((shard->passed_read_write_checks_ + 1) % 10000)
+                //               //     std::cerr << " passed " <<
+                //               shard->passed_read_write_checks_
+                //               //               << " remaining_read_records_ tests.";
+                //              }
+                // D-filtered traces don't have every load or store, so this doesn't
+                // apply.
+                report_if_false(
+                    shard,
+                    TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                            shard->file_type_) ||
+                        shard->remaining_read_records_ == 0,
+                    "Missing read records");
+                report_if_false(
+                    shard,
+                    TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                            shard->file_type_) ||
+                        shard->remaining_write_records_ == 0,
+                    "Missing write records");
+                instr_t *instr = cur_instr_decoded->data;
+                shard->remaining_read_records_ = instr_num_read_access(instr);
+                // kyluk
+                //              if (shard->remaining_read_records_ > 0) {
+                //                  if (display_count < 10) {
+                //                      std::cerr
+                //                          << "instr_num_read_access: " <<
+                //                          shard->remaining_read_records_
+                //                          << "\n";
+                //                      for (int i = 0; i < instr_num_srcs(instr); i++) {
+                //                          opnd_t curop;
+                //                          curop = instr_get_src(instr, i);
+                //                          if (opnd_is_memory_reference(curop)) {
+                //                              std::cerr << "curo is reg: "
+                //                                        << (opnd_is_reg(curop) ? "true"
+                //                                        : "false")
+                //                                        << ", opnd_is_base_disp: "
+                //                                        << (opnd_is_base_disp(curop) ?
+                //                                        "true" : "false")
+                //                                        << ", opnd_is_abs_addr: "
+                //                                        << (opnd_is_abs_addr(curop) ?
+                //                                        "true" : "false")
+                //                                        << ", opnd_is_rel_addr: "
+                //                                        << (opnd_is_rel_addr(curop) ?
+                //                                        "true" : "false")
+                //                                        << ", opnd_is_mem_instr: "
+                //                                        << (opnd_is_mem_instr(curop) ?
+                //                                        "true" : "false")
+                //                                        << "\n";
+                //                          }
+                //                      }
+                //                      display_count++;
+                //                  }
+                //              }
+                shard->remaining_write_records_ = instr_num_write_access(instr);
+
+                //              std::cerr << "new shard->remaining_read_records_: "
+                //                        << shard->remaining_read_records_
+                //                        << ", new shard->remaining_write_records_: "
+                //                        << shard->remaining_write_records_ << "\n";
+            }
+        } else {
+            // Verify the number of read/write records matches the number of
+            // operands of the last instruction.
+            //          if (shard->remaining_read_records_ != 0 ||
+            //              shard->remaining_write_records_ != 0) {
+            //              std::cerr << "shard->remaining_read_records_: "
+            //                        << shard->remaining_read_records_
+            //                        << ", shard->remaining_write_records_: "
+            //                        << shard->remaining_write_records_ << "\n";
+            //          }
+            // D-filtered traces don't have every load or store, so this doesn't apply.
+            report_if_false(
+                shard,
+                TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                        shard->file_type_) ||
+                    shard->remaining_read_records_ == 0,
+                "Missing read records");
+            report_if_false(
+                shard,
+                TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                        shard->file_type_) ||
+                    shard->remaining_write_records_ == 0,
+                "Missing write records");
+            shard->remaining_read_records_ = 0;
+            shard->remaining_write_records_ = 0;
         }
         if (knob_verbose_ >= 3) {
             std::cerr << "::" << memref.data.pid << ":" << memref.data.tid << ":: "
@@ -519,8 +628,9 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
         // Invariant: offline traces guarantee that a branch target must immediately
         // follow the branch w/ no intervening thread switch.
         // If we did serial analyses only, we'd just track the previous instr in the
-        // interleaved stream.  Here we look for headers indicating where an interleaved
-        // stream *could* switch threads, so we're stricter than necessary.
+        // interleaved stream.  Here we look for headers indicating where an
+        // interleaved stream *could* switch threads, so we're stricter than
+        // necessary.
         if (knob_offline_ && type_is_instr_branch(shard->prev_instr_.instr.type)) {
             report_if_false(
                 shard,
@@ -599,25 +709,25 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
                     // Nested signal.  XXX: This only works for our annotated test
                     // signal_invariants where we know shard->app_handler_pc_.
                     memref.instr.addr == shard->app_handler_pc_ ||
-                    // Marker for rseq abort handler.  Not as unique as a prefetch, but
-                    // we need an instruction and not a data type.
+                    // Marker for rseq abort handler.  Not as unique as a prefetch,
+                    // but we need an instruction and not a data type.
                     memref.instr.type == TRACE_TYPE_INSTR_DIRECT_JUMP ||
                     // Instruction-filtered can easily skip the return point.
                     TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_IFILTERED,
                             shard->file_type_),
                 "Signal handler return point incorrect");
         }
-        // last_instr_in_cur_context_ is recorded as the pre-signal instr when we see a
-        // TRACE_MARKER_TYPE_KERNEL_EVENT marker. Note that we cannot perform this
-        // book-keeping using prev_instr_ on the TRACE_MARKER_TYPE_KERNEL_EVENT marker.
-        // E.g. if there was no instr between two nested signals, we do not want to
-        // record any pre-signal instr for the second signal.
+        // last_instr_in_cur_context_ is recorded as the pre-signal instr when we see
+        // a TRACE_MARKER_TYPE_KERNEL_EVENT marker. Note that we cannot perform this
+        // book-keeping using prev_instr_ on the TRACE_MARKER_TYPE_KERNEL_EVENT
+        // marker. E.g. if there was no instr between two nested signals, we do not
+        // want to record any pre-signal instr for the second signal.
         shard->last_instr_in_cur_context_ = memref;
 #endif
         shard->prev_instr_ = memref;
         shard->prev_instr_decoded_ = std::move(cur_instr_decoded);
-        // Clear prev_xfer_marker_ on an instr (not a memref which could come between an
-        // instr and a kernel-mediated far-away instr) to ensure it's *immediately*
+        // Clear prev_xfer_marker_ on an instr (not a memref which could come between
+        // an instr and a kernel-mediated far-away instr) to ensure it's *immediately*
         // prior (i#3937).
         shard->prev_xfer_marker_.marker.marker_type = TRACE_MARKER_TYPE_VERSION;
         shard->saw_timestamp_but_no_instr_ = false;
@@ -726,8 +836,9 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
                     // XXX i#3937: Online traces do not place signal markers properly,
                     // so we can't precisely check for continuity there.
                     knob_offline_) {
-                    // Ensure no discontinuity between a prior instr and the interrupted
-                    // PC, for non-rseq signals where we have the interrupted PC.
+                    // Ensure no discontinuity between a prior instr and the
+                    // interrupted PC, for non-rseq signals where we have the
+                    // interrupted PC.
                     const std::string discontinuity = check_for_pc_discontinuity(
                         shard, memref, shard->last_instr_in_cur_context_,
                         memref.marker.marker_value, nullptr,
@@ -738,11 +849,12 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
                 shard->signal_stack_.push({ memref.marker.marker_value,
                                             shard->last_instr_in_cur_context_,
                                             shard->saw_rseq_abort_ });
-                // XXX: if last_instr_in_cur_context_ is {} currently, it means this is
-                // either a signal that arrived before the first instr in the trace, or
-                // it's a nested signal without any intervening instr after its
-                // outer-scope signal. For the latter case, we can check if the
-                // TRACE_MARKER_TYPE_KERNEL_EVENT marker value is equal for both signals.
+                // XXX: if last_instr_in_cur_context_ is {} currently, it means this
+                // is either a signal that arrived before the first instr in the
+                // trace, or it's a nested signal without any intervening instr after
+                // its outer-scope signal. For the latter case, we can check if the
+                // TRACE_MARKER_TYPE_KERNEL_EVENT marker value is equal for both
+                // signals.
 
                 // We start with an empty memref_t to denote absence of any pre-signal
                 // instr for any subsequent nested signals.
@@ -811,6 +923,46 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
     shard->prev_entry_ = memref;
     if (type_is_instr_branch(shard->prev_entry_.instr.type))
         shard->last_branch_ = shard->prev_entry_;
+
+    // kyluk    static int count = 0;
+    if (type_is_data(memref.data.type) && shard->prev_instr_decoded_ != nullptr) {
+        // kyluk
+        //      if (count < 10) {
+        //          std::cerr << "memref.data.size: " << memref.data.size
+        //                    << ", memref.data.addr: " << memref.data.addr << "\n";
+        //          count++;
+        //      }
+        //      if (shard->remaining_read_records_ != 0 ||
+        //      shard->remaining_write_records_ != 0) {
+        //          std::cerr << "shard->remaining_read_records_: "
+        //                    << shard->remaining_read_records_
+        //                    << ", shard->remaining_write_records_: "
+        //                    << shard->remaining_write_records_ << "\n";
+        //      }
+        if (type_is_read(memref.data.type)) {
+            // D-filtered traces don't have every load or store, so this doesn't apply.
+            report_if_false(
+                shard,
+                TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                        shard->file_type_) ||
+                    shard->remaining_read_records_ > 0,
+                "Too many read records");
+            if (shard->remaining_read_records_ > 0) {
+                shard->remaining_read_records_--;
+            }
+        } else {
+            // D-filtered traces don't have every load or store, so this doesn't apply.
+            report_if_false(
+                shard,
+                TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                        shard->file_type_) ||
+                    shard->remaining_write_records_ > 0,
+                "Too many write records");
+            if (shard->remaining_write_records_ > 0) {
+                shard->remaining_write_records_--;
+            }
+        }
+    }
     return true;
 }
 
@@ -969,14 +1121,15 @@ invariant_checker_t::check_for_pc_discontinuity(
             branch_target = cached->second;
         } else {
             // TODO i#5912: This prev_instr_decoded_ isn't always the same as the
-            // decoding of the passed-in prev_instr, for signals.  What we should do is
-            // create a new instr_info_t struct with fields for the memref_t plus the
-            // from-decoding attributes is_syscall, writes_memory, and branch_target, and
-            // fill it in at decode time.  We can then store it as prev_instr_ and in
-            // pre_signal_instr and last_instr_in_cur_context_ and pass it here as
-            // prev_instr.  We can then delete this branch_target_cache and
-            // prev_instr_decoded_.  For now we live with this inaccuracy as it is
-            // rare to not match and we leave the cleanup for i#5912.
+            // decoding of the passed-in prev_instr, for signals.  What we should do
+            // is create a new instr_info_t struct with fields for the memref_t plus
+            // the from-decoding attributes is_syscall, writes_memory, and
+            // branch_target, and fill it in at decode time.  We can then store it as
+            // prev_instr_ and in pre_signal_instr and last_instr_in_cur_context_ and
+            // pass it here as prev_instr.  We can then delete this
+            // branch_target_cache and prev_instr_decoded_.  For now we live with this
+            // inaccuracy as it is rare to not match and we leave the cleanup for
+            // i#5912.
             if (shard->prev_instr_decoded_ == nullptr ||
                 !opnd_is_pc(instr_get_target(shard->prev_instr_decoded_->data))) {
                 // Neither condition should happen but they could on an invalid
@@ -1016,8 +1169,8 @@ invariant_checker_t::check_for_pc_discontinuity(
         (prev_instr_trace_pc == cur_pc && at_kernel_event) ||
         // Kernel-mediated, but we can't tell if we had a thread swap.
         // TODO i#5912: Isn't this relaxation too loose since we really only want
-        // to relax if a kernel event happened immediately prior, while prev_xfer_marker_
-        // could be many records back?
+        // to relax if a kernel event happened immediately prior, while
+        // prev_xfer_marker_ could be many records back?
         (shard->prev_xfer_marker_.instr.tid != 0 && !at_kernel_event &&
          (shard->prev_xfer_marker_.marker.marker_type == TRACE_MARKER_TYPE_KERNEL_EVENT ||
           shard->prev_xfer_marker_.marker.marker_type == TRACE_MARKER_TYPE_KERNEL_XFER ||
