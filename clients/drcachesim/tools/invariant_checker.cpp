@@ -135,12 +135,12 @@ invariant_checker_t::parallel_shard_exit(void *shard_data)
     report_if_false(shard,
                     TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
                             shard->file_type_) ||
-                        shard->remaining_read_records_ == 0,
+                        shard->expected_read_records_ == 0,
                     "Missing read records");
     report_if_false(shard,
                     TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
                             shard->file_type_) ||
-                        shard->remaining_write_records_ == 0,
+                        shard->expected_write_records_ == 0,
                     "Missing write records");
     return true;
 }
@@ -505,102 +505,119 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
                 cur_instr_decoded.reset(nullptr);
             }
             if (cur_instr_decoded != nullptr && cur_instr_decoded->data != nullptr) {
-                // Verify the number of read/write records matches the number of
-                // operands of the last instruction.
-                // kyluk
-                //              if (shard->remaining_read_records_ != 0 ||
-                //                  shard->remaining_write_records_ != 0) {
-                //                  std::cerr << "shard->remaining_read_records_: "
-                //                            << shard->remaining_read_records_
-                //                            << ", shard->remaining_write_records_: "
-                //                            << shard->remaining_write_records_ << "\n";
-                //              } else {
-                //                  shard->passed_read_write_checks_++;
-                //               // if ((shard->passed_read_write_checks_ + 1) % 10000)
-                //               //     std::cerr << " passed " <<
-                //               shard->passed_read_write_checks_
-                //               //               << " remaining_read_records_ tests.";
-                //              }
-                // D-filtered traces don't have every load or store, so this doesn't
-                // apply.
-                report_if_false(
-                    shard,
-                    TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
-                            shard->file_type_) ||
-                        shard->remaining_read_records_ == 0,
-                    "Missing read records");
-                report_if_false(
-                    shard,
-                    TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
-                            shard->file_type_) ||
-                        shard->remaining_write_records_ == 0,
-                    "Missing write records");
                 instr_t *instr = cur_instr_decoded->data;
-                shard->remaining_read_records_ = instr_num_memory_read_access(instr);
-                // kyluk
-                //              if (shard->remaining_read_records_ > 0) {
-                //                  if (display_count < 10) {
-                //                      std::cerr
-                //                          << "instr_num_read_access: " <<
-                //                          shard->remaining_read_records_
-                //                          << "\n";
-                //                      for (int i = 0; i < instr_num_srcs(instr); i++) {
-                //                          opnd_t curop;
-                //                          curop = instr_get_src(instr, i);
-                //                          if (opnd_is_memory_reference(curop)) {
-                //                              std::cerr << "curo is reg: "
-                //                                        << (opnd_is_reg(curop) ? "true"
-                //                                        : "false")
-                //                                        << ", opnd_is_base_disp: "
-                //                                        << (opnd_is_base_disp(curop) ?
-                //                                        "true" : "false")
-                //                                        << ", opnd_is_abs_addr: "
-                //                                        << (opnd_is_abs_addr(curop) ?
-                //                                        "true" : "false")
-                //                                        << ", opnd_is_rel_addr: "
-                //                                        << (opnd_is_rel_addr(curop) ?
-                //                                        "true" : "false")
-                //                                        << ", opnd_is_mem_instr: "
-                //                                        << (opnd_is_mem_instr(curop) ?
-                //                                        "true" : "false")
-                //                                        << "\n";
-                //                          }
-                //                      }
-                //                      display_count++;
-                //                  }
-                //              }
-                shard->remaining_write_records_ = instr_num_memory_write_access(instr);
+                if (!instr_is_predicated(instr)) {
+                    // Verify the number of read/write records matches the number of
+                    // operands of the last instruction.
+                    // kyluk
+                    //              if (shard->expected_read_records_ != 0 ||
+                    //                  shard->expected_write_records_ != 0) {
+                    //                  std::cerr << "shard->expected_read_records_: "
+                    //                            << shard->expected_read_records_
+                    //                            << ",
+                    //                            shard->expected_write_records_: "
+                    //                            << shard->expected_write_records_ <<
+                    //                            "\n";
+                    //              } else {
+                    //                  shard->passed_read_write_checks_++;
+                    //               // if ((shard->passed_read_write_checks_ + 1) %
+                    //               10000)
+                    //               //     std::cerr << " passed " <<
+                    //               shard->passed_read_write_checks_
+                    //               //               << " expected_read_records_ tests.";
+                    //              }
+                    // D-filtered traces don't have every load or store, so this doesn't
+                    // apply.
+                    report_if_false(
+                        shard,
+                        TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                                shard->file_type_) ||
+                            shard->expected_read_records_ == 0,
+                        "Missing read records");
+                    report_if_false(
+                        shard,
+                        TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                                shard->file_type_) ||
+                            shard->expected_write_records_ == 0,
+                        "Missing write records");
+                    // kyluk             std::cerr << "instr_get_predicate: " << std::hex
+                    // << instr_get_predicate(instr)
+                    //                        << ", instr_is_predicated: " <<
+                    //                        (instr_is_predicated(instr) ? "true" :
+                    //                        "false")
+                    //                        << "\n";
+                    shard->expected_read_records_ = instr_num_memory_read_access(instr);
+                    // kyluk
+                    //              if (shard->expected_read_records_ > 0) {
+                    //                  if (display_count < 10) {
+                    //                      std::cerr
+                    //                          << "instr_num_read_access: " <<
+                    //                          shard->expected_read_records_
+                    //                          << "\n";
+                    //                      for (int i = 0; i < instr_num_srcs(instr);
+                    //                      i++) {
+                    //                          opnd_t curop;
+                    //                          curop = instr_get_src(instr, i);
+                    //                          if (opnd_is_memory_reference(curop)) {
+                    //                              std::cerr << "curo is reg: "
+                    //                                        << (opnd_is_reg(curop) ?
+                    //                                        "true" : "false")
+                    //                                        << ", opnd_is_base_disp: "
+                    //                                        << (opnd_is_base_disp(curop)
+                    //                                        ? "true" : "false")
+                    //                                        << ", opnd_is_abs_addr: "
+                    //                                        << (opnd_is_abs_addr(curop)
+                    //                                        ? "true" : "false")
+                    //                                        << ", opnd_is_rel_addr: "
+                    //                                        << (opnd_is_rel_addr(curop)
+                    //                                        ? "true" : "false")
+                    //                                        << ", opnd_is_mem_instr: "
+                    //                                        << (opnd_is_mem_instr(curop)
+                    //                                        ? "true" : "false")
+                    //                                        << "\n";
+                    //                          }
+                    //                      }
+                    //                      display_count++;
+                    //                  }
+                    //              }
+                    shard->expected_write_records_ = instr_num_memory_write_access(instr);
 
-                //              std::cerr << "new shard->remaining_read_records_: "
-                //                        << shard->remaining_read_records_
-                //                        << ", new shard->remaining_write_records_: "
-                //                        << shard->remaining_write_records_ << "\n";
+                    //              std::cerr << "new shard->expected_read_records_: "
+                    //                        << shard->expected_read_records_
+                    //                        << ", new
+                    //                        shard->expected_write_records_: "
+                    //                        << shard->expected_write_records_ << "\n";
+                }
             }
-        } else {
-            // Verify the number of read/write records matches the number of
-            // operands of the last instruction.
-            //          if (shard->remaining_read_records_ != 0 ||
-            //              shard->remaining_write_records_ != 0) {
-            //              std::cerr << "shard->remaining_read_records_: "
-            //                        << shard->remaining_read_records_
-            //                        << ", shard->remaining_write_records_: "
-            //                        << shard->remaining_write_records_ << "\n";
-            //          }
-            // D-filtered traces don't have every load or store, so this doesn't apply.
-            report_if_false(
-                shard,
-                TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
-                        shard->file_type_) ||
-                    shard->remaining_read_records_ == 0,
-                "Missing read records");
-            report_if_false(
-                shard,
-                TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
-                        shard->file_type_) ||
-                    shard->remaining_write_records_ == 0,
-                "Missing write records");
-            shard->remaining_read_records_ = 0;
-            shard->remaining_write_records_ = 0;
+            /////   } else {
+            /////       // Verify the number of read/write records matches the number of
+            /////       // operands of the last instruction.
+            /////       //          if (shard->expected_read_records_ != 0 ||
+            /////       //              shard->expected_write_records_ != 0) {
+            /////       //              std::cerr << "shard->expected_read_records_: "
+            /////       //                        << shard->expected_read_records_
+            /////       //                        << ", shard->expected_write_records_: "
+            /////       //                        << shard->expected_write_records_ <<
+            ///"\n";
+            /////       //          }
+            /////       // D-filtered traces don't have every load or store, so this
+            ///doesn't apply.
+            /////       report_if_false(
+            /////           shard,
+            /////           TESTANY(OFFLINE_FILE_TYPE_FILTERED |
+            ///OFFLINE_FILE_TYPE_DFILTERED,
+            /////                   shard->file_type_) ||
+            /////               shard->expected_read_records_ == 0,
+            /////           "Missing read records");
+            /////       report_if_false(
+            /////           shard,
+            /////           TESTANY(OFFLINE_FILE_TYPE_FILTERED |
+            ///OFFLINE_FILE_TYPE_DFILTERED,
+            /////                   shard->file_type_) ||
+            /////               shard->expected_write_records_ == 0,
+            /////           "Missing write records");
+            /////       shard->expected_read_records_ = 0;
+            /////       shard->expected_write_records_ = 0;
         }
         if (knob_verbose_ >= 3) {
             std::cerr << "::" << memref.data.pid << ":" << memref.data.tid << ":: "
@@ -926,40 +943,44 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
 
     // kyluk    static int count = 0;
     if (type_is_data(memref.data.type) && shard->prev_instr_decoded_ != nullptr) {
-        // kyluk
-        //      if (count < 10) {
-        //          std::cerr << "memref.data.size: " << memref.data.size
-        //                    << ", memref.data.addr: " << memref.data.addr << "\n";
-        //          count++;
-        //      }
-        //      if (shard->remaining_read_records_ != 0 ||
-        //      shard->remaining_write_records_ != 0) {
-        //          std::cerr << "shard->remaining_read_records_: "
-        //                    << shard->remaining_read_records_
-        //                    << ", shard->remaining_write_records_: "
-        //                    << shard->remaining_write_records_ << "\n";
-        //      }
-        if (type_is_read(memref.data.type)) {
-            // D-filtered traces don't have every load or store, so this doesn't apply.
-            report_if_false(
-                shard,
-                TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
-                        shard->file_type_) ||
-                    shard->remaining_read_records_ > 0,
-                "Too many read records");
-            if (shard->remaining_read_records_ > 0) {
-                shard->remaining_read_records_--;
-            }
-        } else {
-            // D-filtered traces don't have every load or store, so this doesn't apply.
-            report_if_false(
-                shard,
-                TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
-                        shard->file_type_) ||
-                    shard->remaining_write_records_ > 0,
-                "Too many write records");
-            if (shard->remaining_write_records_ > 0) {
-                shard->remaining_write_records_--;
+        if (!instr_is_predicated(shard->prev_instr_decoded_->data)) {
+            // kyluk
+            //      if (count < 10) {
+            //          std::cerr << "memref.data.size: " << memref.data.size
+            //                    << ", memref.data.addr: " << memref.data.addr << "\n";
+            //          count++;
+            //      }
+            //      if (shard->expected_read_records_ != 0 ||
+            //      shard->expected_write_records_ != 0) {
+            //          std::cerr << "shard->expected_read_records_: "
+            //                    << shard->expected_read_records_
+            //                    << ", shard->expected_write_records_: "
+            //                    << shard->expected_write_records_ << "\n";
+            //      }
+            if (type_is_read(memref.data.type)) {
+                // D-filtered traces don't have every load or store, so this doesn't
+                // apply.
+                report_if_false(
+                    shard,
+                    TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                            shard->file_type_) ||
+                        shard->expected_read_records_ > 0,
+                    "Too many read records");
+                if (shard->expected_read_records_ > 0) {
+                    shard->expected_read_records_--;
+                }
+            } else {
+                // D-filtered traces don't have every load or store, so this doesn't
+                // apply.
+                report_if_false(
+                    shard,
+                    TESTANY(OFFLINE_FILE_TYPE_FILTERED | OFFLINE_FILE_TYPE_DFILTERED,
+                            shard->file_type_) ||
+                        shard->expected_write_records_ > 0,
+                    "Too many write records");
+                if (shard->expected_write_records_ > 0) {
+                    shard->expected_write_records_--;
+                }
             }
         }
     }

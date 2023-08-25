@@ -1664,6 +1664,36 @@ check_read_write_records_match_operands()
     constexpr addr_t ADDR = 0x7fcf3b9d;
 #endif
 
+    // Correct: ignore predicated operands with memory access
+    {
+        std::vector<memref_t> memrefs = {
+            gen_marker(TID, TRACE_MARKER_TYPE_FILETYPE, OFFLINE_FILE_TYPE_ENCODINGS),
+#if defined(X86_64) || defined(X86_32)
+            // 0x7fcf3b9d: b9 00 00 00 00       mov    $0x00000000, %ecx
+            gen_instr_encoded(ADDR,
+                              /*encoding=*/
+                              { 0xb9, 0x00, 0x00, 0x00, 0x00 }),
+            // 0x7fcf3ba2: 8d 34 25 0e 20 40 00 lea    0x0040200e, %esi
+            gen_instr_encoded(ADDR + 5,
+                              /*encoding=*/
+                              { 0x8d, 0x34, 0x25, 0x0e, 0x20, 0x40, 0x00 }),
+            // 0x7fcf3ba9: 8d 3c 25 00 20 40 00 lea    0x00402000, %edi
+            gen_instr_encoded(ADDR + 12,
+                              /*encoding=*/
+                              { 0x8d, 0x3c, 0x25, 0x00, 0x20, 0x40, 0x00 }),
+            // 0x7fcf3bb0: fc                   cld
+            gen_instr_encoded(ADDR + 19, /*encoding=*/ { 0xfc }),
+            // 0x7fcf3bb1: f3 a5                rep movsd
+            gen_instr_encoded(ADDR + 20, /*encoding=*/ { 0xf3, 0xa5 }),
+            // 0x7fcf3bb3: 90 nop
+            gen_instr_encoded(ADDR + 22, { 0x90 }),
+#endif
+        };
+        std::cerr << "Correct: ignore string move.\n";
+        if (!run_checker(memrefs, false)) {
+            return false;
+        }
+    }
     // Correct: read records match instruction operand.
     {
         std::vector<memref_t> memrefs = {
