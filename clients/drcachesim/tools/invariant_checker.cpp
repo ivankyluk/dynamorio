@@ -601,18 +601,18 @@ invariant_checker_t::parallel_shard_memref(void *shard_data, const memref_t &mem
             ///"\n";
             /////       //          }
             /////       // D-filtered traces don't have every load or store, so this
-            ///doesn't apply.
+            /// doesn't apply.
             /////       report_if_false(
             /////           shard,
             /////           TESTANY(OFFLINE_FILE_TYPE_FILTERED |
-            ///OFFLINE_FILE_TYPE_DFILTERED,
+            /// OFFLINE_FILE_TYPE_DFILTERED,
             /////                   shard->file_type_) ||
             /////               shard->expected_read_records_ == 0,
             /////           "Missing read records");
             /////       report_if_false(
             /////           shard,
             /////           TESTANY(OFFLINE_FILE_TYPE_FILTERED |
-            ///OFFLINE_FILE_TYPE_DFILTERED,
+            /// OFFLINE_FILE_TYPE_DFILTERED,
             /////                   shard->file_type_) ||
             /////               shard->expected_write_records_ == 0,
             /////           "Missing write records");
