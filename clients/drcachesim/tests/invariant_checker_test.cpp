@@ -292,10 +292,6 @@ check_sane_control_flow()
             // <__executable_start+0x19df0>
             gen_branch_encoded(TID, /*pc=*/0x71019dbc, /*encoding=*/0x540001a1),
             gen_instr_encoded(/*pc=*/0x71019ded, /*encoding=*/0x01, TID),
-            // addr and size are not used to verify the number of read/write
-            // memory accesses of the instruction.
-            gen_data(TID, /*load=*/false, /*addr=*/0, /*size=*/0),
-            gen_data(TID, /*load=*/true, /*addr=*/0, /*size=*/0),
 #    else
         // TODO i#5871: Add AArch32 (and RISC-V) encodings.
 #    endif
@@ -316,18 +312,19 @@ check_sane_control_flow()
 #    if defined(X86_64) || defined(X86_32)
             // 0x74 is "je" with the 2nd byte the offset.
             gen_branch_encoded(TID, /*pc=*/0x71019dbc, /*encoding=*/ { 0x74, 0x32 }),
-#    elif defined(ARM_64)
-            // 71019dbc:   540001a1        b.ne    71019df0
-            // <__executable_start+0x19df0>
-            gen_branch_encoded(TID, /*pc=*/0x71019dbc, /*encoding=*/0x540001a1),
-#    else
-        // TODO i#5871: Add AArch32 (and RISC-V) encodings.
-#    endif
             gen_instr(TID, /*pc=*/0x71019df0),
             // addr and size are not used to verify the number of read/write
             // memory accesses of the instruction.
             gen_data(TID, /*load=*/false, /*addr=*/0, /*size=*/0),
             gen_data(TID, /*load=*/true, /*addr=*/0, /*size=*/0),
+#    elif defined(ARM_64)
+            // 71019dbc:   540001a1        b.ne    71019df0
+            // <__executable_start+0x19df0>
+            gen_branch_encoded(TID, /*pc=*/0x71019dbc, /*encoding=*/0x540001a1),
+            gen_instr(TID, /*pc=*/0x71019df0),
+#    else
+        // TODO i#5871: Add AArch32 (and RISC-V) encodings.
+#    endif
         };
 
         if (!run_checker(memrefs, false)) {
