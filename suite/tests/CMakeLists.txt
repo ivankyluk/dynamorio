@@ -6308,14 +6308,13 @@ IF (NOT AARCH64 AND NOT ANDROID AND NOT MUSL AND NOT RISCV64)
   use_DynamoRIO_extension(client.strace-test.dll drmgr)
   use_DynamoRIO_extension(client.strace-test.dll drsyscall)
 
-  # kyluk
-  ##tobuild_ci(client.strace-sample-test client-interface/drsyscall-test.c "" "" "")
-  ##get_target_path_for_execution(strace_sample_test_libpath client.strace-sample-test.dll
-  ##  "${location_suffix}")
-  ##add_test(strace_sample ${drrun_path} -s 90 -quiet -killpg
-  ##  -client ${strace_sample_test_libpath} 0 "" ${dr_test_ops} -- ${app_path})
-  ##use_DynamoRIO_extension(client.strace-sample-test.dll drmgr)
-  ##use_DynamoRIO_extension(client.strace-sample-test.dll drsyscall)
+  tobuild_ci(sample.strace client-interface/drsyscall-test.c "" "" "")
+  get_target_path_for_execution(strace_sample_test_libpath sample.strace.dll
+    "${location_suffix}")
+  add_test(strace_sample ${drrun_path} -s 90 -quiet
+    -client ${strace_sample_test_libpath} 0 "" ${dr_test_ops} -- ${app_path})
+  use_DynamoRIO_extension(sample.strace.dll drmgr)
+  use_DynamoRIO_extension(sample.strace.dll drsyscall)
 endif ()
 
 ###########################################################################

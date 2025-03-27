@@ -180,7 +180,6 @@ event_pre_syscall(void *drcontext, int sysnum)
 
     check_mcontext(drcontext);
 
-    dr_printf(STDERR, "syscall->return_type: %d\n", syscall->return_type);
     drmf_status_t status = drsys_syscall_return_type(syscall, &ret_type);
     if (status != DRMF_SUCCESS || ret_type == DRSYS_TYPE_INVALID ||
         ret_type == DRSYS_TYPE_UNKNOWN) {
