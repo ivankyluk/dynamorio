@@ -391,6 +391,7 @@ dr_client_main(client_id_t id, int argc, const char *argv[])
         ops.sysnum_file = sysnum_path;
     }
     dr_get_os_version(&os_version);
+    dr_fprintf(STDERR, "win version: %d\n", os_version.version);
 #endif
     drmgr_init();
     drmf_status_t status = drsys_init(id, &ops);
