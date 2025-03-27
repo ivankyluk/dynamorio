@@ -181,8 +181,8 @@ event_pre_syscall(void *drcontext, int sysnum)
     check_mcontext(drcontext);
 
     drmf_status_t status = drsys_syscall_return_type(syscall, &ret_type);
-    if (status != DRMF_SUCCESS ||
-        ret_type == DRSYS_TYPE_INVALID || ret_type == DRSYS_TYPE_UNKNOWN) {
+    if (status != DRMF_SUCCESS || ret_type == DRSYS_TYPE_INVALID ||
+        ret_type == DRSYS_TYPE_UNKNOWN) {
         dr_fprintf(STDERR, "status: %d, ret_type: %d\n", status, ret_type);
         ASSERT(false, "failed to get syscall return type");
     }
