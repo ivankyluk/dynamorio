@@ -889,6 +889,7 @@ drsyscall_os_init(void *drcontext)
          * DRMF_WARNING_UNSUPPORTED_KERNEL below.
          */
         sysnums = NULL;
+        res = 100;
         break;
     }
 
@@ -903,8 +904,10 @@ drsyscall_os_init(void *drcontext)
      */
     hashtable_init_ex(&name2num_table, NAME2NUM_TABLE_HASH_BITS, HASH_STRING_NOCASE,
                       false /*!strdup*/, true /*synch*/, name2num_entry_free, NULL, NULL);
-    if (sysnums != NULL && drsys_ops.skip_internal_tables)
+    if (sysnums != NULL && drsys_ops.skip_internal_tables) {
         sysnums = NULL;
+        res = 1000;
+    }
     if (sysnums != NULL) {
         /* Check whether these match by spot-checking a few (we want to check
          * multiple in case some are hooked or in case an update ends up with
@@ -939,7 +942,7 @@ drsyscall_os_init(void *drcontext)
     if (sysnums == NULL) {
         /* i#1908: we support loading numbers from a file */
         if (drsys_ops.sysnum_file == NULL)
-            res = DRMF_WARNING_UNSUPPORTED_KERNEL;
+            res += DRMF_WARNING_UNSUPPORTED_KERNEL;
         else {
             res = read_sysnum_file(drcontext, drsys_ops.sysnum_file, data);
             if (res != DRMF_SUCCESS) {
@@ -947,6 +950,7 @@ drsyscall_os_init(void *drcontext)
                     NOTIFY_ERROR("%s does not contain an entry for this kernel." NL,
                                  drsys_ops.sysnum_file);
                 }
+                res += 5000;
             } else
                 nums_from_file = true;
         }
@@ -956,7 +960,7 @@ drsyscall_os_init(void *drcontext)
              * false positives in graphical apps.  We tell the caller via
              * this return value in case he wants to abort.
              */
-            res = DRMF_WARNING_UNSUPPORTED_KERNEL;
+            res += 1000 + DRMF_WARNING_UNSUPPORTED_KERNEL;
             syscall_numbers_unknown = true;
         }
     }
@@ -992,7 +996,7 @@ drsyscall_os_init(void *drcontext)
                                    !syscall_numbers_unknown && !nums_from_file);
     if (subres != DRMF_SUCCESS) {
         ASSERT(false, "wingdi_init unexpectedly failed");
-        res = subres;
+        res = 3000 + subres;
     }
 
     if (!syscall_numbers_unknown) {
