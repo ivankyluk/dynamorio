@@ -921,6 +921,8 @@ drsyscall_os_init(void *drcontext)
                      "Syscall mismatch detected.  "
                      "Running on unknown kernel version!\n");
                 sysnums = NULL;
+                WARN("WARNING: Syscall mismatch detected, i=%d\n", i);
+                ASSERT(false, "Syscall mismatch detected!!!\n");
                 break;
             } else if (!ok) {
                 WARN("WARNING: failed to spot-check %s\n", sysnum_names[i]);

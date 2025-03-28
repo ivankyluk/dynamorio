@@ -392,6 +392,8 @@ dr_client_main(client_id_t id, int argc, const char *argv[])
     }
     dr_get_os_version(&os_version);
     dr_fprintf(STDERR, "win version: %d\n", os_version.version);
+    dr_fprintf(STDERR, "ops.skip_internal_tables: %d\n", ops.skip_internal_tables);
+
 #endif
     drmgr_init();
     drmf_status_t status = drsys_init(id, &ops);
