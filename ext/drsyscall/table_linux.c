@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <linux/stat.h>
+
 #include "dr_api.h"
 #include "drsyscall.h"
 #include "drsyscall_os.h"
@@ -1419,6 +1421,11 @@ syscall_info_t syscall_info[] = {
          {2,sizeof(int),W, DRSYS_TYPE_SIGNED_INT},
      }
     }, /* == accept4 */
+    {{PACKNUM(332,383,397,AARCH64_statx),0},"statx", OK, RLONG, 5,
+     {
+         {4,sizeof(struct statx),W},
+     }
+    },
 
 #ifdef AARCHXX
     /**************************************************/
