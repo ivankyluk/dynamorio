@@ -170,7 +170,7 @@ event_pre_syscall(void *drcontext, int sysnum)
         ASSERT(false, "drsys_get_sysnum failed");
     ASSERT(sysnum == sysnum_full.number, "primary should match DR's num");
 
-    if (true /*verbose*/) {
+    if (verbose) {
         const char *name;
         drmf_status_t res = drsys_syscall_name(syscall, &name);
         ASSERT(res == DRMF_SUCCESS && name != NULL, "drsys_syscall_name failed");

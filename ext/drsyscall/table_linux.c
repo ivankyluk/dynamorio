@@ -20,8 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <linux/stat.h>
-
 #include "dr_api.h"
 #include "drsyscall.h"
 #include "drsyscall_os.h"
