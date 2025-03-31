@@ -570,7 +570,7 @@ num_gdi32_syscalls(void);
 /* The initial set of entries in drsyscall_numx for which we check the ntdll wrappers
  * to ensure our table is correct.
  */
-#define NUM_SPOT_CHECKS 4
+#define NUM_SPOT_CHECKS 40
 
 /* Takes in any Nt syscall wrapper entry point.
  * Will accept other entry points (e.g., we call it for gdi32!GetFontData)
@@ -835,10 +835,12 @@ drsyscall_os_init(void *drcontext)
         win_ver.service_pack_major = 0;
         win_ver.service_pack_minor = 0;
     }
+    res = win_ver.version * 10000;
     switch (win_ver.version) {
     case DR_WINDOWS_VERSION_10_1803:
         sysnums = IF_X64_ELSE(win10_1803_x64_sysnums,
                               wow64 ? win10_1803_wow_sysnums : win10_1803_x86_sysnums);
+        res += 9000000;
         break;
     case DR_WINDOWS_VERSION_10_1709:
         sysnums = IF_X64_ELSE(win10_1709_x64_sysnums,
@@ -903,28 +905,47 @@ drsyscall_os_init(void *drcontext)
      */
     hashtable_init_ex(&name2num_table, NAME2NUM_TABLE_HASH_BITS, HASH_STRING_NOCASE,
                       false /*!strdup*/, true /*synch*/, name2num_entry_free, NULL, NULL);
-    if (sysnums != NULL && drsys_ops.skip_internal_tables)
+    if (sysnums != NULL && drsys_ops.skip_internal_tables) {
         sysnums = NULL;
+        res += 50000;
+    }
     if (sysnums != NULL) {
         /* Check whether these match by spot-checking a few (we want to check
          * multiple in case some are hooked or in case an update ends up with
          * some being identical).  We do not want to take the time to check them all.
          */
+        bool failed = false;
         for (i = 0; i < NUM_SPOT_CHECKS; i++) {
             drsys_sysnum_t num_from_wrapper, num_from_table;
             bool ok = syscall_num_from_name(drcontext, data, sysnum_names[i], NULL,
                                             false /*exported*/, &num_from_wrapper);
+            // Fails when i == 1.
+            // 24: i:0, Syscall mismatch for NtAllocateVirtualMemory: wrapper 24 vs table
+            // 24 24: i:1, Syscall mismatch for NtGetContextThread: wrapper 236 vs table
+            // 235 //0xeb=235 is correct
+            //     based on https://j00ru.vexillium.org/syscalls/nt/64/
+            //     236 should be NtGetCurrentProcessorNumber
+            // 24: i:2, Syscall mismatch for NtContinue: wrapper 67 vs table 67
+            // 24: i:3, Syscall mismatch for NtCallbackReturn: wrapper 5 vs table 5
+            dr_fprintf(STDERR, "i:%d, Syscall mismatch for %s: wrapper %d vs table %d\n",
+                       i, sysnum_names[i], num_from_wrapper.number, sysnums[i]);
             if (ok && num_from_wrapper.number != sysnums[i]) {
                 LOG(drcontext, 1, "Syscall mismatch for %s: wrapper %d vs table %d\n",
                     sysnum_names[i], num_from_wrapper.number, sysnums[i]);
                 ELOG(0,
                      "Syscall mismatch detected.  "
                      "Running on unknown kernel version!\n");
-                sysnums = NULL;
-                break;
+                res += 100 * (i + 1);
+                // sysnums = NULL;
+                // WARN("WARNING: Syscall mismatch detected, i=%d\n", i);
+                // ASSERT(false, "Syscall mismatch detected!!!\n");
+                // break;
             } else if (!ok) {
                 WARN("WARNING: failed to spot-check %s\n", sysnum_names[i]);
             }
+        }
+        if (failed) {
+            sysnums = NULL;
         }
     }
     if (sysnums != NULL) {
@@ -937,7 +958,7 @@ drsyscall_os_init(void *drcontext)
     if (sysnums == NULL) {
         /* i#1908: we support loading numbers from a file */
         if (drsys_ops.sysnum_file == NULL)
-            res = DRMF_WARNING_UNSUPPORTED_KERNEL;
+            res += DRMF_WARNING_UNSUPPORTED_KERNEL;
         else {
             res = read_sysnum_file(drcontext, drsys_ops.sysnum_file, data);
             if (res != DRMF_SUCCESS) {
@@ -954,7 +975,6 @@ drsyscall_os_init(void *drcontext)
              * false positives in graphical apps.  We tell the caller via
              * this return value in case he wants to abort.
              */
-            res = DRMF_WARNING_UNSUPPORTED_KERNEL;
             syscall_numbers_unknown = true;
         }
     }
@@ -990,7 +1010,7 @@ drsyscall_os_init(void *drcontext)
                                    !syscall_numbers_unknown && !nums_from_file);
     if (subres != DRMF_SUCCESS) {
         ASSERT(false, "wingdi_init unexpectedly failed");
-        res = subres;
+        res += subres;
     }
 
     if (!syscall_numbers_unknown) {
