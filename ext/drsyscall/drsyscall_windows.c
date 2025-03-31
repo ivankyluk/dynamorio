@@ -570,7 +570,7 @@ num_gdi32_syscalls(void);
 /* The initial set of entries in drsyscall_numx for which we check the ntdll wrappers
  * to ensure our table is correct.
  */
-#define NUM_SPOT_CHECKS 4
+#define NUM_SPOT_CHECKS 40
 
 /* Takes in any Nt syscall wrapper entry point.
  * Will accept other entry points (e.g., we call it for gdi32!GetFontData)
@@ -920,6 +920,11 @@ drsyscall_os_init(void *drcontext)
             bool ok = syscall_num_from_name(drcontext, data, sysnum_names[i], NULL,
                                             false /*exported*/, &num_from_wrapper);
             // Fails when i == 1.
+            // 24: i:0, Syscall mismatch for NtAllocateVirtualMemory: wrapper 24 vs table 24
+            // 24: i:1, Syscall mismatch for NtGetContextThread: wrapper 236 vs table 235 //0xeb=235 is correct
+            //     based on https://j00ru.vexillium.org/syscalls/nt/64/
+            // 24: i:2, Syscall mismatch for NtContinue: wrapper 67 vs table 67
+            // 24: i:3, Syscall mismatch for NtCallbackReturn: wrapper 5 vs table 5
             dr_fprintf(STDERR, "i:%d, Syscall mismatch for %s: wrapper %d vs table %d\n",
                        i, sysnum_names[i], num_from_wrapper.number, sysnums[i]);
             if (ok && num_from_wrapper.number != sysnums[i]) {
