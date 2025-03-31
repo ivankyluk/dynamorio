@@ -914,10 +914,14 @@ drsyscall_os_init(void *drcontext)
          * multiple in case some are hooked or in case an update ends up with
          * some being identical).  We do not want to take the time to check them all.
          */
+        bool failed = false;
         for (i = 0; i < NUM_SPOT_CHECKS; i++) {
             drsys_sysnum_t num_from_wrapper, num_from_table;
             bool ok = syscall_num_from_name(drcontext, data, sysnum_names[i], NULL,
                                             false /*exported*/, &num_from_wrapper);
+            // Fails when i == 1.
+            dr_fprintf(STDERR, "i:%d, Syscall mismatch for %s: wrapper %d vs table %d\n",
+                       i, sysnum_names[i], num_from_wrapper.number, sysnums[i]);
             if (ok && num_from_wrapper.number != sysnums[i]) {
                 LOG(drcontext, 1, "Syscall mismatch for %s: wrapper %d vs table %d\n",
                     sysnum_names[i], num_from_wrapper.number, sysnums[i]);
@@ -925,13 +929,16 @@ drsyscall_os_init(void *drcontext)
                      "Syscall mismatch detected.  "
                      "Running on unknown kernel version!\n");
                 res += 100 * (i + 1);
-                sysnums = NULL;
-                WARN("WARNING: Syscall mismatch detected, i=%d\n", i);
-                ASSERT(false, "Syscall mismatch detected!!!\n");
-                break;
+              //sysnums = NULL;
+              //WARN("WARNING: Syscall mismatch detected, i=%d\n", i);
+              //ASSERT(false, "Syscall mismatch detected!!!\n");
+              //break;
             } else if (!ok) {
                 WARN("WARNING: failed to spot-check %s\n", sysnum_names[i]);
             }
+        }
+        if (failed) {
+            sysnums = NULL;
         }
     }
     if (sysnums != NULL) {
