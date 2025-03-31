@@ -834,6 +834,7 @@ drsyscall_os_init(void *drcontext)
         win_ver.version = DR_WINDOWS_VERSION_10_1803;
         win_ver.service_pack_major = 0;
         win_ver.service_pack_minor = 0;
+        res = 500000;
     }
     switch (win_ver.version) {
     case DR_WINDOWS_VERSION_10_1803:
@@ -889,7 +890,7 @@ drsyscall_os_init(void *drcontext)
          * DRMF_WARNING_UNSUPPORTED_KERNEL below.
          */
         sysnums = NULL;
-        res = 100;
+        res += 100;
         break;
     }
 
@@ -906,7 +907,7 @@ drsyscall_os_init(void *drcontext)
                       false /*!strdup*/, true /*synch*/, name2num_entry_free, NULL, NULL);
     if (sysnums != NULL && drsys_ops.skip_internal_tables) {
         sysnums = NULL;
-        res = 1000;
+        res += 1000;
     }
     if (sysnums != NULL) {
         /* Check whether these match by spot-checking a few (we want to check
@@ -942,7 +943,7 @@ drsyscall_os_init(void *drcontext)
     if (sysnums == NULL) {
         /* i#1908: we support loading numbers from a file */
         if (drsys_ops.sysnum_file == NULL)
-            res += DRMF_WARNING_UNSUPPORTED_KERNEL;
+            res += 3000 + DRMF_WARNING_UNSUPPORTED_KERNEL;
         else {
             res = read_sysnum_file(drcontext, drsys_ops.sysnum_file, data);
             if (res != DRMF_SUCCESS) {
@@ -950,9 +951,10 @@ drsyscall_os_init(void *drcontext)
                     NOTIFY_ERROR("%s does not contain an entry for this kernel." NL,
                                  drsys_ops.sysnum_file);
                 }
-                res += 5000;
             } else
                 nums_from_file = true;
+
+             res += 5000;
         }
         if (res != DRMF_SUCCESS) {
             /* We'll keep going, relying on wrapper decoding and unknown
@@ -960,9 +962,10 @@ drsyscall_os_init(void *drcontext)
              * false positives in graphical apps.  We tell the caller via
              * this return value in case he wants to abort.
              */
-            res += 1000 + DRMF_WARNING_UNSUPPORTED_KERNEL;
+            res += 9000 + DRMF_WARNING_UNSUPPORTED_KERNEL;
             syscall_numbers_unknown = true;
         }
+        res += 10000 + DRMF_WARNING_UNSUPPORTED_KERNEL;
     }
 
     hashtable_init_ex(&systable, SYSTABLE_HASH_BITS, HASH_INTPTR, false /*!strdup*/,
@@ -996,7 +999,7 @@ drsyscall_os_init(void *drcontext)
                                    !syscall_numbers_unknown && !nums_from_file);
     if (subres != DRMF_SUCCESS) {
         ASSERT(false, "wingdi_init unexpectedly failed");
-        res = 3000 + subres;
+        res += 100000 + subres;
     }
 
     if (!syscall_numbers_unknown) {
