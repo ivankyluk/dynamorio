@@ -920,9 +920,11 @@ drsyscall_os_init(void *drcontext)
             bool ok = syscall_num_from_name(drcontext, data, sysnum_names[i], NULL,
                                             false /*exported*/, &num_from_wrapper);
             // Fails when i == 1.
-            // 24: i:0, Syscall mismatch for NtAllocateVirtualMemory: wrapper 24 vs table 24
-            // 24: i:1, Syscall mismatch for NtGetContextThread: wrapper 236 vs table 235 //0xeb=235 is correct
+            // 24: i:0, Syscall mismatch for NtAllocateVirtualMemory: wrapper 24 vs table
+            // 24 24: i:1, Syscall mismatch for NtGetContextThread: wrapper 236 vs table
+            // 235 //0xeb=235 is correct
             //     based on https://j00ru.vexillium.org/syscalls/nt/64/
+            //     236 should be NtGetCurrentProcessorNumber
             // 24: i:2, Syscall mismatch for NtContinue: wrapper 67 vs table 67
             // 24: i:3, Syscall mismatch for NtCallbackReturn: wrapper 5 vs table 5
             dr_fprintf(STDERR, "i:%d, Syscall mismatch for %s: wrapper %d vs table %d\n",
