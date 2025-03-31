@@ -835,11 +835,12 @@ drsyscall_os_init(void *drcontext)
         win_ver.service_pack_major = 0;
         win_ver.service_pack_minor = 0;
     }
-    res = win_ver.version * 1000;
+    res = win_ver.version * 10000;
     switch (win_ver.version) {
     case DR_WINDOWS_VERSION_10_1803:
         sysnums = IF_X64_ELSE(win10_1803_x64_sysnums,
                               wow64 ? win10_1803_wow_sysnums : win10_1803_x86_sysnums);
+        res += 9000000;
         break;
     case DR_WINDOWS_VERSION_10_1709:
         sysnums = IF_X64_ELSE(win10_1709_x64_sysnums,
@@ -923,6 +924,7 @@ drsyscall_os_init(void *drcontext)
                 ELOG(0,
                      "Syscall mismatch detected.  "
                      "Running on unknown kernel version!\n");
+                res += 100 * (i + 1);
                 sysnums = NULL;
                 WARN("WARNING: Syscall mismatch detected, i=%d\n", i);
                 ASSERT(false, "Syscall mismatch detected!!!\n");
