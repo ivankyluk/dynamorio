@@ -1756,7 +1756,8 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
     for (i = 0, compacted = 0; i < sysinfo->arg_count; i++) {
         arg->ordinal = i;
         arg->size = sizeof(void *);
-        dr_fprintf(STDERR, "@@@ drsys_iterate_args_common set size to sizeof void *: %d",
+        dr_fprintf(STDERR,
+                   "@@@ drsys_iterate_args_common set size to sizeof void *: %d\n",
                    arg->size);
         if (pt == NULL) {
             arg->reg = DR_REG_NULL;
@@ -1816,6 +1817,10 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
         ASSERT(arg->type < NUM_PARAM_TYPE_NAMES, "invalid type enum val");
         arg->type_name = param_type_names[arg->type];
 
+        dr_fprintf(STDERR,
+                   "@@@ drsys_iterate_args_common calls callback ordinal:%d, "
+                   "value64:0x%lx, size:%d*\n",
+                   arg->ordinal, arg->value64, arg->size);
         if (!(*cb)(arg, user_data))
             break;
     }
