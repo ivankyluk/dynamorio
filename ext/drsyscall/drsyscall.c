@@ -1764,13 +1764,13 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
             arg->start_addr = NULL;
             arg->value = 0;
             arg->value64 = 0;
-            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common after pt == MULL: %d\n",
+            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common after pt == NULL: %d\n",
                        arg->size);
         } else {
             drsyscall_os_get_sysparam_location(pt, i, arg);
             arg->value64 = pt->sysarg[i];
             arg->value = (ptr_uint_t)pt->sysarg[i];
-            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common after pt != MULL: %d\n",
+            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common after pt != NULL: %d\n",
                        arg->size);
         }
         arg->type = DRSYS_TYPE_UNKNOWN;
@@ -1815,12 +1815,20 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                            arg->size);
             }
             arg->mode = mode_from_flags(sysinfo->arg[compacted].flags);
+            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common size: %d after mode=\n",
+                       arg->size);
             arg->enum_name = sysinfo->arg[compacted].type_name;
+            dr_fprintf(STDERR,
+                       "@@@ drsys_iterate_args_common size: %d after enum_name=\n",
+                       arg->size);
             /* Go to next entry.  Skip double entries. */
             while (sysinfo->arg[compacted].param == i &&
                    !sysarg_invalid(&sysinfo->arg[compacted]))
                 compacted++;
             ASSERT(compacted <= MAX_ARGS_IN_ENTRY, "error in table entry");
+            dr_fprintf(STDERR,
+                       "@@@ drsys_iterate_args_common size: %d after while sysinfo=\n",
+                       arg->size);
         } else
             arg->enum_name = NULL;
         ASSERT(arg->type < NUM_PARAM_TYPE_NAMES, "invalid type enum val");
@@ -1839,7 +1847,7 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
         arg->size = sizeof(reg_t);
         /* get exported type and size if different from reg_t */
         arg->type = map_to_exported_type(sysinfo->return_type, &arg->size);
-        dr_fprintf(STDERR, "@@@ drsys_iterate_args_common get exported size : %d",
+        dr_fprintf(STDERR, "@@@ drsys_iterate_args_common get exported size : %d\n",
                    arg->size);
         set_return_arg_vals(drcontext, pt, arg, pt != NULL && !pt->pre, arg->size,
                             arg->type, NULL);
