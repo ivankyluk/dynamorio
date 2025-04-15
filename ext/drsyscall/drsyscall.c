@@ -1843,17 +1843,17 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                        arg->ordinal, arg->value, arg->value64, arg->size);
         }
         arg->type_name = param_type_names[arg->type];
-        static int count = 0;
-        if (arg->size != 4) {
-            if (count < 10) {
-                dr_fprintf(STDERR, "arg->size != 4\n");
-                ++count;
-            }
-        }
-        dr_fprintf(STDERR,
-                   "@@@ drsys_iterate_args_common calls callback ordinal:%d, "
-                   "size:" PIFX "\n",
-                   arg->ordinal, arg->size);
+        // static int count = 0;
+        // if (arg->size != 4) {
+        //     if (count < 10) {
+        //         dr_fprintf(STDERR, "arg->size != 4\n");
+        //         ++count;
+        //     }
+        // }
+        // dr_fprintf(STDERR,
+        //            "@@@ drsys_iterate_args_common calls callback ordinal:%d, "
+        //            "size:" PIFX "\n",
+        //            arg->ordinal, arg->size);
         if (!(*cb)(arg, user_data))
             break;
     }
@@ -1863,8 +1863,8 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
         arg->size = sizeof(reg_t);
         /* get exported type and size if different from reg_t */
         arg->type = map_to_exported_type(sysinfo->return_type, &arg->size);
-        dr_fprintf(STDERR, "@@@ drsys_iterate_args_common get exported size : %d\n",
-                   arg->size);
+        // dr_fprintf(STDERR, "@@@ drsys_iterate_args_common get exported size : %d\n",
+        //           arg->size);
         set_return_arg_vals(drcontext, pt, arg, pt != NULL && !pt->pre, arg->size,
                             arg->type, NULL);
         (*cb)(arg, user_data);

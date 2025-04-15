@@ -86,23 +86,23 @@ drsys_iter_memarg_cb(drsys_arg_t *arg, void *user_data)
 static bool
 drsys_iter_arg_cb(drsys_arg_t *arg, void *user_data)
 {
+    if (!arg->valid) {
+        return true; /* keep going */
+    }
+
     // ordinal is set to -1 for return value.
     if (arg->ordinal == -1) {
-        if (arg->pre) {
-            return true;
-        } else {
-            dr_fprintf(STDERR, "post-syscall, return value=0x%x, size=" PIFX "\n",
+        if (!arg->pre) {
+            dr_fprintf(STDERR, "post-syscall, return value=" PFX ", size=" PIFX "\n",
                        arg->value64, arg->size);
-            return true;
         }
+        return true;
     }
-    dr_fprintf(STDERR, "%s-syscall, ordinal=%d, mode=0x%x", (arg->pre ? "pre" : "post"),
-               arg->ordinal, arg->mode);
-    if (arg->valid) {
-        dr_fprintf(STDERR, ", value=0x%lx, size=" PIFX, arg->value64, arg->size);
-    }
-    dr_fprintf(STDERR, "\n");
-
+    dr_fprintf(STDERR,
+               "%s-syscall, ordinal=%d, mode=0x%x, value=0x" HEX64_FORMAT_STRING
+               ", size=" PIFX "\n",
+               (arg->pre ? "pre" : "post"), arg->ordinal, arg->mode, arg->value64,
+               arg->size);
     return true; /* keep going */
 }
 
