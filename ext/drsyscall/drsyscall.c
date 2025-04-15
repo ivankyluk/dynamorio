@@ -1756,22 +1756,15 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
     for (i = 0, compacted = 0; i < sysinfo->arg_count; i++) {
         arg->ordinal = i;
         arg->size = sizeof(void *);
-        dr_fprintf(STDERR,
-                   "@@@ drsys_iterate_args_common set size to sizeof void *: %d\n",
-                   arg->size);
         if (pt == NULL) {
             arg->reg = DR_REG_NULL;
             arg->start_addr = NULL;
             arg->value = 0;
             arg->value64 = 0;
-            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common after pt == NULL: %d\n",
-                       arg->size);
         } else {
             drsyscall_os_get_sysparam_location(pt, i, arg);
             arg->value64 = pt->sysarg[i];
             arg->value = (ptr_uint_t)pt->sysarg[i];
-            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common after pt != NULL: %d\n",
-                       arg->size);
         }
         arg->type = DRSYS_TYPE_UNKNOWN;
         arg->mode = DRSYS_PARAM_IN;
@@ -1793,10 +1786,12 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                 int sz = sysinfo->arg[compacted].size;
                 ASSERT(sz > 0, "inlined must have regular size in bytes");
                 arg->size = sz;
-                dr_fprintf(STDERR,
-                           "@@@ drsys_iterate_args_common inline set size to : %d, "
-                           "sizeof(ptr_uint_t): %d\n",
-                           arg->size, sizeof(ptr_uint_t));
+                if (arg->size != 4 && arg->size != 8) {
+                    dr_fprintf(STDERR,
+                               "@@@ drsys_iterate_args_common inline set size to : %d, "
+                               "sizeof(ptr_uint_t): %d\n",
+                               arg->size, sizeof(ptr_uint_t));
+                }
                 /* We zero out the top bits here which are uninitialized, to
                  * avoid confusing the client.
                  */
@@ -1809,35 +1804,51 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                         arg->value &= 0xffffffff;
                     arg->value64 = arg->value;
                 }
-                dr_fprintf(STDERR,
-                           "@@@ drsys_iterate_args_common size: %d (arg->size < "
-                           "sizeof(ptr_uint_t))\n",
-                           arg->size);
+                if (arg->size != 4 && arg->size != 8) {
+                    dr_fprintf(STDERR,
+                               "@@@ drsys_iterate_args_common size: %d (arg->size < "
+                               "sizeof(ptr_uint_t))\n",
+                               arg->size);
+                }
             }
             arg->mode = mode_from_flags(sysinfo->arg[compacted].flags);
-            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common size: %d after mode=\n",
-                       arg->size);
+            if (arg->size != 4 && arg->size != 8) {
+                dr_fprintf(STDERR, "@@@ drsys_iterate_args_common size: %d after mode=\n",
+                           arg->size);
+            }
             arg->enum_name = sysinfo->arg[compacted].type_name;
-            dr_fprintf(STDERR,
-                       "@@@ drsys_iterate_args_common size: %d after enum_name=\n",
-                       arg->size);
+            if (arg->size != 4 && arg->size != 8) {
+                dr_fprintf(STDERR,
+                           "@@@ drsys_iterate_args_common size: %d after enum_name=\n",
+                           arg->size);
+            }
             /* Go to next entry.  Skip double entries. */
             while (sysinfo->arg[compacted].param == i &&
                    !sysarg_invalid(&sysinfo->arg[compacted]))
                 compacted++;
             ASSERT(compacted <= MAX_ARGS_IN_ENTRY, "error in table entry");
-            dr_fprintf(STDERR,
-                       "@@@ drsys_iterate_args_common size: %d after while sysinfo=\n",
-                       arg->size);
+            if (arg->size != 4 && arg->size != 8) {
+                dr_fprintf(
+                    STDERR,
+                    "@@@ drsys_iterate_args_common size: %d after while sysinfo=\n",
+                    arg->size);
+            }
         } else
             arg->enum_name = NULL;
         ASSERT(arg->type < NUM_PARAM_TYPE_NAMES, "invalid type enum val");
+        if (arg->size != 4 && arg->size != 8) {
+            dr_fprintf(STDERR,
+                       "@@@ 1 drsys_iterate_args_common calls callback ordinal:%d, "
+                       "value:0x%x, value64:0x%lx, size:%d\n",
+                       arg->ordinal, arg->value, arg->value64, arg->size);
+        }
         arg->type_name = param_type_names[arg->type];
-
-        dr_fprintf(STDERR,
-                   "@@@ drsys_iterate_args_common calls callback ordinal:%d, "
-                   "value:0x%x, value64:0x%lx, size:%d\n",
-                   arg->ordinal, arg->value, arg->value64, arg->size);
+        if (arg->size != 4 && arg->size != 8) {
+            dr_fprintf(STDERR,
+                       "@@@ 2 drsys_iterate_args_common calls callback ordinal:%d, "
+                       "value:0x%x, value64:0x%lx, size:%d\n",
+                       arg->ordinal, arg->value, arg->value64, arg->size);
+        }
         if (!(*cb)(arg, user_data))
             break;
     }
