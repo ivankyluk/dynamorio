@@ -1764,10 +1764,14 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
             arg->start_addr = NULL;
             arg->value = 0;
             arg->value64 = 0;
+            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common after pt == MULL: %d\n",
+                       arg->size);
         } else {
             drsyscall_os_get_sysparam_location(pt, i, arg);
             arg->value64 = pt->sysarg[i];
             arg->value = (ptr_uint_t)pt->sysarg[i];
+            dr_fprintf(STDERR, "@@@ drsys_iterate_args_common after pt != MULL: %d\n",
+                       arg->size);
         }
         arg->type = DRSYS_TYPE_UNKNOWN;
         arg->mode = DRSYS_PARAM_IN;
@@ -1790,8 +1794,9 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                 ASSERT(sz > 0, "inlined must have regular size in bytes");
                 arg->size = sz;
                 dr_fprintf(STDERR,
-                           "@@@ drsys_iterate_args_common inline set size to : %d",
-                           arg->size);
+                           "@@@ drsys_iterate_args_common inline set size to : %d, "
+                           "sizeof(ptr_uint_t): %d\n",
+                           arg->size, sizeof(ptr_uint_t));
                 /* We zero out the top bits here which are uninitialized, to
                  * avoid confusing the client.
                  */
@@ -1804,6 +1809,10 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                         arg->value &= 0xffffffff;
                     arg->value64 = arg->value;
                 }
+                dr_fprintf(STDERR,
+                           "@@@ drsys_iterate_args_common size: %d (arg->size < "
+                           "sizeof(ptr_uint_t))\n",
+                           arg->size);
             }
             arg->mode = mode_from_flags(sysinfo->arg[compacted].flags);
             arg->enum_name = sysinfo->arg[compacted].type_name;
@@ -1819,8 +1828,8 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
 
         dr_fprintf(STDERR,
                    "@@@ drsys_iterate_args_common calls callback ordinal:%d, "
-                   "value64:0x%lx, size:%d*\n",
-                   arg->ordinal, arg->value64, arg->size);
+                   "value:0x%x, value64:0x%lx, size:%d\n",
+                   arg->ordinal, arg->value, arg->value64, arg->size);
         if (!(*cb)(arg, user_data))
             break;
     }
