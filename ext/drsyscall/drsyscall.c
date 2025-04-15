@@ -1843,12 +1843,10 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                        arg->ordinal, arg->value, arg->value64, arg->size);
         }
         arg->type_name = param_type_names[arg->type];
-        if (arg->size != 4 && arg->size != 8) {
-            dr_fprintf(STDERR,
-                       "@@@ 2 drsys_iterate_args_common calls callback ordinal:%d, "
-                       "value:0x%x, value64:0x%lx, size:%d\n",
-                       arg->ordinal, arg->value, arg->value64, arg->size);
-        }
+        dr_fprintf(STDERR,
+                   "@@@ 2 drsys_iterate_args_common calls callback ordinal:%d, "
+                   "value:0x%x, value64:0x%lx, size:" PIFX "\n",
+                   arg->ordinal, arg->value, arg->value64, arg->size);
         if (!(*cb)(arg, user_data))
             break;
     }

@@ -67,7 +67,8 @@ drsys_iter_memarg_cb(drsys_arg_t *arg, void *user_data)
     dr_fprintf(STDERR, "%s-syscall, ordinal=%d, mode=0x%x", (arg->pre ? "pre" : "post"),
                arg->ordinal, arg->mode);
     if (arg->valid) {
-        dr_fprintf(STDERR, ", start_addr=%p, size=0x%x", arg->start_addr, arg->size);
+        dr_fprintf(STDERR, ", start_addr=" PFX ", size=" PIFX, arg->start_addr,
+                   arg->size);
         if ((arg->pre && arg->mode & DRSYS_PARAM_IN) ||
             (!arg->pre && arg->mode & DRSYS_PARAM_OUT)) {
             const size_t buf_size = 2 * arg->size + 1;
@@ -90,7 +91,7 @@ drsys_iter_arg_cb(drsys_arg_t *arg, void *user_data)
         if (arg->pre) {
             return true;
         } else {
-            dr_fprintf(STDERR, "post-syscall, return value=0x%x, size=0x%x\n",
+            dr_fprintf(STDERR, "post-syscall, return value=0x%x, size=" PIFX "\n",
                        arg->value64, arg->size);
             return true;
         }
@@ -98,7 +99,7 @@ drsys_iter_arg_cb(drsys_arg_t *arg, void *user_data)
     dr_fprintf(STDERR, "%s-syscall, ordinal=%d, mode=0x%x", (arg->pre ? "pre" : "post"),
                arg->ordinal, arg->mode);
     if (arg->valid) {
-        dr_fprintf(STDERR, ", value=0x%lx, size=0x%x", arg->value64, arg->size);
+        dr_fprintf(STDERR, ", value=0x%lx, size=" PIFX, arg->value64, arg->size);
     }
     dr_fprintf(STDERR, "\n");
 
