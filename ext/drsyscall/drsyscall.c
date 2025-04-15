@@ -983,7 +983,7 @@ set_return_arg_vals(void *drcontext, cls_syscall_t *pt, drsys_arg_t *arg /*IN/OU
 {
     arg->ordinal = -1;
     arg->size = sz;
-    dr_fprintf(STDERR, "@@@ set_return_arg_vals: sz=%d\n", sz);
+    // dr_fprintf(STDERR, "@@@ set_return_arg_vals: sz=%d\n", sz);
     arg->reg = DR_REG_NULL;
     arg->start_addr = NULL;
     arg->enum_name = NULL;
@@ -1003,7 +1003,7 @@ bool
 report_sysarg_return(void *drcontext, sysarg_iter_info_t *ii, size_t sz,
                      drsys_param_type_t type, const char *type_name)
 {
-    dr_fprintf(STDERR, "@@@ report_sysarg_return size : %d", sz);
+    // dr_fprintf(STDERR, "@@@ report_sysarg_return size : %d", sz);
     set_return_arg_vals(drcontext, ii->pt, ii->arg, ii->pt != NULL && !ii->pt->pre, sz,
                         type, type_name);
     return report_sysarg_iter(ii);
@@ -1016,7 +1016,7 @@ report_sysarg_type(sysarg_iter_info_t *ii, int ordinal, uint arg_flags, size_t s
     drsys_arg_t *arg = ii->arg;
     arg->ordinal = ordinal;
     arg->size = sz;
-    dr_fprintf(STDERR, "@@@ report_sysarg_type: sz=%d\n", sz);
+    // dr_fprintf(STDERR, "@@@ report_sysarg_type: sz=%d\n", sz);
     drsyscall_os_get_sysparam_location(ii->pt, ordinal, arg);
     arg->value = (ptr_uint_t)ii->pt->sysarg[ordinal];
     arg->value64 = ii->pt->sysarg[ordinal];
@@ -1029,7 +1029,7 @@ report_sysarg_type(sysarg_iter_info_t *ii, int ordinal, uint arg_flags, size_t s
 bool
 report_sysarg(sysarg_iter_info_t *ii, int ordinal, uint arg_flags)
 {
-    dr_fprintf(STDERR, "@@@ report_sysarg: sz=%d\n", sizeof(reg_t));
+    // dr_fprintf(STDERR, "@@@ report_sysarg: sz=%d\n", sizeof(reg_t));
     return report_sysarg_type(ii, ordinal, arg_flags, sizeof(reg_t), DRSYS_TYPE_UNKNOWN,
                               NULL);
 }
@@ -1843,10 +1843,17 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                        arg->ordinal, arg->value, arg->value64, arg->size);
         }
         arg->type_name = param_type_names[arg->type];
+        static int count = 0;
+        if (arg->size != 4) {
+            if (count < 10) {
+                dr_fprintf(STDERR, "arg->size != 4\n");
+                ++count;
+            }
+        }
         dr_fprintf(STDERR,
-                   "@@@ 2 drsys_iterate_args_common calls callback ordinal:%d, "
-                   "value:0x%x, value64:0x%lx, size:" PIFX "\n",
-                   arg->ordinal, arg->value, arg->value64, arg->size);
+                   "@@@ drsys_iterate_args_common calls callback ordinal:%d, "
+                   "size:" PIFX "\n",
+                   arg->ordinal, arg->size);
         if (!(*cb)(arg, user_data))
             break;
     }
