@@ -983,6 +983,7 @@ set_return_arg_vals(void *drcontext, cls_syscall_t *pt, drsys_arg_t *arg /*IN/OU
 {
     arg->ordinal = -1;
     arg->size = sz;
+    dr_fprintf(STDERR, "@@@ set_return_arg_vals: sz=%d\n", sz);
     arg->reg = DR_REG_NULL;
     arg->start_addr = NULL;
     arg->enum_name = NULL;
@@ -1002,6 +1003,7 @@ bool
 report_sysarg_return(void *drcontext, sysarg_iter_info_t *ii, size_t sz,
                      drsys_param_type_t type, const char *type_name)
 {
+    dr_fprintf(STDERR, "@@@ report_sysarg_return size : %d", sz);
     set_return_arg_vals(drcontext, ii->pt, ii->arg, ii->pt != NULL && !ii->pt->pre, sz,
                         type, type_name);
     return report_sysarg_iter(ii);
@@ -1014,6 +1016,7 @@ report_sysarg_type(sysarg_iter_info_t *ii, int ordinal, uint arg_flags, size_t s
     drsys_arg_t *arg = ii->arg;
     arg->ordinal = ordinal;
     arg->size = sz;
+    dr_fprintf(STDERR, "@@@ report_sysarg_type: sz=%d\n", sz);
     drsyscall_os_get_sysparam_location(ii->pt, ordinal, arg);
     arg->value = (ptr_uint_t)ii->pt->sysarg[ordinal];
     arg->value64 = ii->pt->sysarg[ordinal];
@@ -1026,6 +1029,7 @@ report_sysarg_type(sysarg_iter_info_t *ii, int ordinal, uint arg_flags, size_t s
 bool
 report_sysarg(sysarg_iter_info_t *ii, int ordinal, uint arg_flags)
 {
+    dr_fprintf(STDERR, "@@@ report_sysarg: sz=%d\n", sizeof(reg_t));
     return report_sysarg_type(ii, ordinal, arg_flags, sizeof(reg_t), DRSYS_TYPE_UNKNOWN,
                               NULL);
 }
@@ -1752,6 +1756,8 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
     for (i = 0, compacted = 0; i < sysinfo->arg_count; i++) {
         arg->ordinal = i;
         arg->size = sizeof(void *);
+        dr_fprintf(STDERR, "@@@ drsys_iterate_args_common set size to sizeof void *: %d",
+                   arg->size);
         if (pt == NULL) {
             arg->reg = DR_REG_NULL;
             arg->start_addr = NULL;
@@ -1782,6 +1788,9 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
                 int sz = sysinfo->arg[compacted].size;
                 ASSERT(sz > 0, "inlined must have regular size in bytes");
                 arg->size = sz;
+                dr_fprintf(STDERR,
+                           "@@@ drsys_iterate_args_common inline set size to : %d",
+                           arg->size);
                 /* We zero out the top bits here which are uninitialized, to
                  * avoid confusing the client.
                  */
@@ -1816,6 +1825,8 @@ drsys_iterate_args_common(void *drcontext, cls_syscall_t *pt, syscall_info_t *sy
         arg->size = sizeof(reg_t);
         /* get exported type and size if different from reg_t */
         arg->type = map_to_exported_type(sysinfo->return_type, &arg->size);
+        dr_fprintf(STDERR, "@@@ drsys_iterate_args_common get exported size : %d",
+                   arg->size);
         set_return_arg_vals(drcontext, pt, arg, pt != NULL && !pt->pre, arg->size,
                             arg->type, NULL);
         (*cb)(arg, user_data);
