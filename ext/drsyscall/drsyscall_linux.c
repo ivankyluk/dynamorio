@@ -628,7 +628,8 @@ check_msghdr(void *drcontext, cls_syscall_t *pt, sysarg_iter_info_t *ii, byte *p
     }
 }
 
-#ifndef X64 /* XXX i#1013: for mixed-mode we'll need to indirect SYS_socketcall, etc. */
+#if defined(X86) && !defined(X64) /* XXX i#1013: for mixed-mode we'll need to indirect \
+                                     SYS_socketcall, etc. */
 static void
 handle_pre_socketcall(void *drcontext, cls_syscall_t *pt, sysarg_iter_info_t *ii)
 {
@@ -932,7 +933,7 @@ handle_post_socketcall(void *drcontext, cls_syscall_t *pt, sysarg_iter_info_t *i
     }
     }
 }
-#endif /* !X64 */
+#endif /* !X64 && X86 */
 
 static uint
 ipc_sem_len(int semid)
@@ -1285,7 +1286,8 @@ check_msgbuf(void *drcontext, cls_syscall_t *pt, sysarg_iter_info_t *ii, byte *p
                        msgsnd ? "msgsnd mtext" : "msgrcv mtext", DRSYS_TYPE_STRUCT, NULL);
 }
 
-#ifndef X64 /* XXX i#1013: for mixed-mode we'll need to indirect SYS_socketcall, etc. */
+#if defined(X86) && !defined(X64) /* XXX i#1013: for mixed-mode we'll need to indirect \
+                                     SYS_socketcall, etc. */
 static void
 handle_pre_ipc(void *drcontext, cls_syscall_t *pt, sysarg_iter_info_t *ii)
 {
@@ -1440,7 +1442,7 @@ handle_post_ipc(void *drcontext, cls_syscall_t *pt, sysarg_iter_info_t *ii)
     }
     /* If you add any handling here: need to check ii->abort first */
 }
-#endif /* !X64 */
+#endif /* X86 && !X64 */
 
 /* handles both select and pselect6 */
 static void
