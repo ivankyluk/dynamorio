@@ -517,6 +517,47 @@ event_pre_detach()
     }
 }
 
+static void
+event_nudge(void *drcontext, uint64 arg)
+{
+    if (arg == TRACER_NUDGE_MEM_DUMP) {
+        char path[MAXIMUM_PATH];
+        dr_memory_dump_spec_t spec;
+        spec.size = sizeof(dr_memory_dump_spec_t);
+#ifdef WINDOWS
+        spec.flags = DR_MEMORY_DUMP_LDMP;
+        spec.ldmp_path = (char *)&path;
+        spec.ldmp_path_size = MAXIMUM_PATH;
+#else
+        spec.flags = DR_MEMORY_DUMP_ELF;
+        spec.elf_path = (char *)&path;
+        spec.elf_path_size = MAXIMUM_PATH;
+#endif
+        if (!dr_create_memory_dump(&spec)) {
+            NOTIFY(0, "ERROR: failed to create memory dump.\n");
+            return;
+        }
+        file_t memory_dump_file = dr_open_file(path, DR_FILE_READ);
+        if (memory_dump_file < 0) {
+            NOTIFY(0, "ERROR: failed to read memory dump file: %s.\n", path);
+            return;
+        }
+        uint64 file_size;
+        if (!dr_file_size(memory_dump_file, &file_size)) {
+            NOTIFY(0, "ERROR: failed to read the size of the memory dump file: %s.\n",
+                   path);
+            dr_close_file(memory_dump_file);
+            return;
+        }
+        NOTIFY(0, "INFO: memory dump file %s, size %d\n", path, file_size);
+        if (file_size == 0) {
+            NOTIFY(0, "ERROR: memory dump file %s is empty.\n", path);
+        }
+        dr_close_file(memory_dump_file);
+        return;
+    }
+}
+
 /***************************************************************************
  * Tracing instrumentation.
  */
@@ -2361,7 +2402,7 @@ drmemtrace_client_main(client_id_t id, int argc, const char *argv[])
         op_disable_optimizations.set_value(true);
 
     init_record_syscall();
-    event_inscount_init();
+    event_inscount_init(id);
     init_io();
 
     DR_ASSERT(std::atomic_is_lock_free(&tracing_mode));
@@ -2460,6 +2501,7 @@ drmemtrace_client_main(client_id_t id, int argc, const char *argv[])
 #endif
     attached_midway = dr_register_post_attach_event(event_post_attach);
     dr_register_pre_detach_event(event_pre_detach);
+    dr_register_nudge_event(event_nudge, id);
 
     /* We need our thread exit event to run *before* drmodtrack's as we may
      * need to translate physical addresses for the thread's final buffer.
