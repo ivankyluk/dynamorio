@@ -214,10 +214,19 @@ dr_client_main(client_id_t id, int argc, const char *argv[])
 {
     syscall_record_t record = {};
     dr_fprintf(STDERR,
+               "SYSCALL_RECORD_CONTENT_SIZE_BYTES: %d, "
+               "SYSCALL_RECORD_SYSCALL_NUMBER_TIMESTAMP_SIZE_BYTES %d\n",
+               SYSCALL_RECORD_CONTENT_SIZE_BYTES,
+               SYSCALL_RECORD_SYSCALL_NUMBER_TIMESTAMP_SIZE_BYTES);
+    dr_fprintf(STDERR,
                "SYSCALL_RECORD_UNION_SIZE_BYTES: %d, sizeof(record.type): %d, "
                "sizeof(syscall_record_t): %d\n",
                SYSCALL_RECORD_UNION_SIZE_BYTES, sizeof(record.type),
                sizeof(syscall_record_t));
+    dr_fprintf(STDERR,
+               "sizeof record.content : %d, "
+               "size of record.syscall_number_timestamp : %d\n",
+               sizeof(record.content), sizeof(record.syscall_number_timestamp));
     ASSERT((SYSCALL_RECORD_UNION_SIZE_BYTES + sizeof(record.type)) ==
            sizeof(syscall_record_t));
 
